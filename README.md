@@ -24,8 +24,8 @@ python capture_server_video.py --tag <your_tag>
 Examples:
 
 ```bash
-python capture_server_video.py --tag my_work_session
-python capture_server_video.py --tag deep_focus_mode
+python capture_server_video.py --tag lit_review
+python capture_server_video.py --tag debugging_session
 ```
 
 ### Stop Recording
