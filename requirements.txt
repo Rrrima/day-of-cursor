@@ -1,0 +1,14 @@
+# Python dependencies for video-based screen capture
+Pillow>=10.0.0
+mss>=9.0.0
+pyobjc-framework-Quartz>=9.0
+pyobjc-framework-Cocoa>=9.0
+numpy>=1.24.0
+
+# Note: FFmpeg must be installed separately
+# Install FFmpeg on macOS using Homebrew:
+#   brew install ffmpeg
+#
+# Verify FFmpeg installation:
+#   ffmpeg -version
+

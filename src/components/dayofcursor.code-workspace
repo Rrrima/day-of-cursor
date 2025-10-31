@@ -1,0 +1,13 @@
+{
+  "folders": [
+	{
+		"name": "dayofcursor",
+		"path": "../.."
+	},
+	{
+		"name": "__cursor_data",
+		"path": "../../../../project/fairy-electron/pyserver/__cursor_data"
+	}
+],
+  "settings": {}
+}
