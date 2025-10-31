@@ -70,7 +70,7 @@ If you still want to use it:
 1. Use `capture_server.py` instead of `capture_server_video.py`
 2. Update `src/index.js` to render `<App />` instead of `<AppVideo />`
 
-## 🛠️ Advanced Options
+## Advanced Options
 
 ### Recording Options
 
