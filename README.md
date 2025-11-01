@@ -89,4 +89,4 @@ python capture_server_video.py \
 
 ---
 
-Made with ✨ for tracking every pixel of your cursor's adventure
+Made with 🎃 for tracking every pixel of your cursor's adventure
