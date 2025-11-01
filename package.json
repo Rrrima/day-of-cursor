@@ -16,6 +16,7 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
+    "lucide-react": "^0.552.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
   },
@@ -32,4 +33,3 @@
     "webpack-dev-server": "^4.15.1"
   }
 }
-

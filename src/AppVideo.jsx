@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import TimelineViewerVideo from "./components/TimelineViewerVideo";
 import Loading from "./components/Loading";
+import { MousePointer2 } from "lucide-react";
 
 function AppVideo() {
   const [availableTags, setAvailableTags] = useState([]);
@@ -98,9 +99,17 @@ function AppVideo() {
   }
 
   return (
-    <div style={{ width: "100%", height: "100%" }}>
+    <div className="root-container">
       <div className="tag-selector">
-        <label htmlFor="tag-select">Recording:</label>
+        <label htmlFor="tag-select" className="tag-selector-label">
+          <MousePointer2
+            color="#a8a8a8"
+            fill="#a8a8a8"
+            strokeWidth={1}
+            size={20}
+          />{" "}
+          <span style={{ color: "#a8a8a8" }}>is in</span>
+        </label>
         <select
           id="tag-select"
           value={selectedTag}
