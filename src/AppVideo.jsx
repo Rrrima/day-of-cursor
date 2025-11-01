@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import TimelineViewerVideo from "./components/TimelineViewerVideo";
 import Loading from "./components/Loading";
 
-const TAG = "test_tag";
+const TAG = "rima_test";
 
 function AppVideo() {
   const [timelineData, setTimelineData] = useState([]);

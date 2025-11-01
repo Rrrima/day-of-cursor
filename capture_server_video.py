@@ -29,7 +29,6 @@ class ScreenCaptureVideo:
         """
         self.capture_interval = capture_interval
         self.output_dir = output_dir
-        self.tag = tag
         self.fps = fps
         self.running = False
         
@@ -45,6 +44,20 @@ class ScreenCaptureVideo:
         if not os.path.exists(self.output_dir):
             os.makedirs(self.output_dir)
             print(f"Created output directory: {self.output_dir}")
+        
+        # Check if tag results in existing files and add index if necessary
+        original_tag = tag
+        idx = 1
+        while True:
+            video_path = os.path.join(self.output_dir, f"screen_capture_{tag}.webm")
+            if not os.path.exists(video_path):
+                break
+            tag = f"{original_tag}_{idx}"
+            idx += 1
+        
+        self.tag = tag
+        if tag != original_tag:
+            print(f"Tag '{original_tag}' already exists, using '{tag}' instead")
         
         # Frame queue for video encoding
         self.frame_queue = Queue(maxsize=300)  # Buffer up to 30 seconds at 10 FPS
@@ -217,7 +230,7 @@ class ScreenCaptureVideo:
                 self.frame_queue.task_done()
                 
             except Exception as e:
-                if self.running:  # Only print errors if we're still supposed to be running
+                if self.running:  
                     print(f"Error encoding frame: {e}")
                 continue
         
