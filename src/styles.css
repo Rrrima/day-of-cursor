@@ -893,6 +893,84 @@ input[type="range"]::-moz-range-thumb:active {
   }
 }
 
+/* Tag Selector */
+.tag-selector {
+  position: absolute;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 20px;
+  backdrop-filter: blur(40px) saturate(180%);
+  background: linear-gradient(
+    135deg,
+    rgba(19, 19, 19, 0.85) 0%,
+    rgba(45, 45, 45, 0.9) 100%
+  );
+  border-radius: 12px;
+  border: 1px solid rgba(147, 197, 253, 0.2);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 0 rgba(147, 197, 253, 0.1);
+}
+
+.tag-selector label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #cbd5e1;
+  letter-spacing: 0.3px;
+}
+
+.tag-dropdown {
+  min-width: 200px;
+  padding: 8px 32px 8px 12px;
+  background: linear-gradient(
+    135deg,
+    rgba(51, 65, 85, 0.6) 0%,
+    rgba(30, 41, 59, 0.8) 100%
+  );
+  border: 1px solid rgba(147, 197, 253, 0.3);
+  border-radius: 8px;
+  color: #e2e8f0;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  outline: none;
+  transition: all 0.2s ease;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.3),
+    inset 0 0 8px rgba(59, 130, 246, 0.05);
+  appearance: none;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='rgb(147, 197, 253)' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  background-size: 20px;
+}
+
+.tag-dropdown:hover {
+  border-color: rgba(147, 197, 253, 0.5);
+  background: linear-gradient(
+    135deg,
+    rgba(59, 130, 246, 0.2) 0%,
+    rgba(37, 99, 235, 0.3) 100%
+  );
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2),
+    inset 0 0 12px rgba(59, 130, 246, 0.1), 0 0 16px rgba(59, 130, 246, 0.2);
+}
+
+.tag-dropdown:focus {
+  border-color: rgba(96, 165, 250, 0.6);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2),
+    inset 0 0 12px rgba(59, 130, 246, 0.15), 0 0 20px rgba(59, 130, 246, 0.3);
+}
+
+.tag-dropdown option {
+  background: #1e293b;
+  color: #e2e8f0;
+  padding: 8px;
+}
+
 @media (max-width: 768px) {
   .container {
     padding: 10px;
@@ -931,5 +1009,20 @@ input[type="range"]::-moz-range-thumb:active {
 
   .crosshair.vertical {
     height: 40px;
+  }
+
+  /* Tag selector for mobile */
+  .tag-selector {
+    top: 10px;
+    left: 10px;
+    right: 10px;
+    transform: none;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .tag-dropdown {
+    width: 100%;
+    min-width: 0;
   }
 }

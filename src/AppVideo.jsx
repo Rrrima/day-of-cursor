@@ -2,22 +2,56 @@ import React, { useState, useEffect } from "react";
 import TimelineViewerVideo from "./components/TimelineViewerVideo";
 import Loading from "./components/Loading";
 
-const TAG = "rima_test";
-
 function AppVideo() {
+  const [availableTags, setAvailableTags] = useState([]);
+  const [selectedTag, setSelectedTag] = useState("");
   const [timelineData, setTimelineData] = useState([]);
   const [videoSrc, setVideoSrc] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // Fetch available tags on mount
   useEffect(() => {
-    loadData();
+    fetchTags();
   }, []);
 
-  const loadData = async () => {
+  // Load data when tag is selected
+  useEffect(() => {
+    if (selectedTag) {
+      loadData(selectedTag);
+    }
+  }, [selectedTag]);
+
+  const fetchTags = async () => {
+    try {
+      const response = await fetch("/api/tags");
+      if (!response.ok) {
+        throw new Error("Failed to fetch tags");
+      }
+      const data = await response.json();
+      setAvailableTags(data.tags);
+
+      // Auto-select the first tag if available
+      if (data.tags.length > 0) {
+        setSelectedTag(data.tags[0]);
+      } else {
+        setError("No recordings found in __cursor_data folder");
+        setLoading(false);
+      }
+    } catch (error) {
+      console.error("Error fetching tags:", error);
+      setError("Failed to load available recordings");
+      setLoading(false);
+    }
+  };
+
+  const loadData = async (tag) => {
+    setLoading(true);
+    setError(null);
+
     try {
       // Load CSV with video timestamps
-      const response = await fetch(`/__cursor_data/mouse_positions_${TAG}.csv`);
+      const response = await fetch(`/__cursor_data/mouse_positions_${tag}.csv`);
       if (!response.ok) {
         throw new Error("Failed to load CSV file");
       }
@@ -38,13 +72,17 @@ function AppVideo() {
       });
 
       setTimelineData(data);
-      setVideoSrc(`/__cursor_data/screen_capture_${TAG}.webm`);
+      setVideoSrc(`/__cursor_data/screen_capture_${tag}.webm`);
       setLoading(false);
     } catch (error) {
       console.error("Error loading data:", error);
       setError(error.message);
       setLoading(false);
     }
+  };
+
+  const handleTagChange = (event) => {
+    setSelectedTag(event.target.value);
   };
 
   if (loading) {
@@ -54,13 +92,30 @@ function AppVideo() {
   if (error) {
     return (
       <div className="loading">
-        <div>Error loading timeline data: {error}</div>
+        <div>Error: {error}</div>
       </div>
     );
   }
 
   return (
-    <TimelineViewerVideo timelineData={timelineData} videoSrc={videoSrc} />
+    <div style={{ width: "100%", height: "100%" }}>
+      <div className="tag-selector">
+        <label htmlFor="tag-select">Recording:</label>
+        <select
+          id="tag-select"
+          value={selectedTag}
+          onChange={handleTagChange}
+          className="tag-dropdown"
+        >
+          {availableTags.map((tag) => (
+            <option key={tag} value={tag}>
+              {tag}
+            </option>
+          ))}
+        </select>
+      </div>
+      <TimelineViewerVideo timelineData={timelineData} videoSrc={videoSrc} />
+    </div>
   );
 }
 
