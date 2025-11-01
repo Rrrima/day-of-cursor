@@ -28,6 +28,8 @@ python capture_server_video.py --tag lit_review
 python capture_server_video.py --tag debugging_session
 ```
 
+**Note:** If a recording with the same tag already exists, the system will automatically append a number (e.g., `lit_review_1`, `lit_review_2`) to avoid overwriting your previous recordings.
+
 ### Stop Recording
 
 Press **Ctrl+C** to stop recording
@@ -49,17 +51,13 @@ npm install
 npm start
 ```
 
-The app will open at `http://localhost:3000`
+Go to: `http://localhost:3001`
 
-### Configure Your Tag
+### Select Your Recording
 
-Before viewing, update the tag name in `src/AppVideo.jsx`:
+The frontend has a **dropdown selector** at the top of the page for you to select which session your cursor is in. (The most recent session will be selected by default.)
 
-```javascript
-const TAG = "your_tag"; // Change this to match your recording tag
-```
-
-Then enjoy your cursor's replay!
+Then enjoy your cursor's replay :)
 
 ## PNG Mode (Deprecated)
 
