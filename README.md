@@ -2,6 +2,13 @@
 
 Watch your cursor's journey through time! Record your screen and cursor movements, then replay them as a bird's-eye view or experience it from your cursor's POV 👁️
 
+## Requirements
+
+- Python 3.7+
+- Node.js and npm
+- FFmpeg (for video encoding)
+- macOS (uses Quartz for screen capture)
+
 ## Recording Your Screen
 
 ### Setup (First Time)
@@ -79,13 +86,6 @@ python capture_server_video.py \
   --quality low \               # low/medium/high (default: low)
   --output-dir __cursor_data    # Output directory
 ```
-
-## Requirements
-
-- Python 3.7+
-- Node.js and npm
-- FFmpeg (for video encoding)
-- macOS (uses Quartz for screen capture)
 
 ---
 
