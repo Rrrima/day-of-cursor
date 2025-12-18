@@ -12,6 +12,11 @@ from PIL import Image, ImageDraw
 import Quartz
 import mss
 import numpy as np
+from typing import Optional
+
+DEFAULT_FPS = 10
+DEFAULT_QUALITY = "low"  # keep CLI behavior (fast, larger files)
+DEFAULT_OUTPUT_DIR = "__cursor_data"
 
 
 class ScreenCaptureVideo:
@@ -450,34 +455,47 @@ class ScreenCaptureVideo:
         print(f"{'='*60}\n")
 
 
+def create_capture_session(
+    tag: Optional[str] = None,
+    fps: int = DEFAULT_FPS,
+    quality: str = DEFAULT_QUALITY,
+    output_dir: str = DEFAULT_OUTPUT_DIR,
+) -> ScreenCaptureVideo:
+    """Factory for ScreenCaptureVideo with shared defaults."""
+    if tag is None:
+        tag = datetime.now().strftime("%Y%m%d_%H%M%S")
+
+    return ScreenCaptureVideo(
+        capture_interval=1.0 / fps,
+        output_dir=output_dir,
+        tag=tag,
+        video_quality=quality,
+        fps=fps,
+    )
+
+
 if __name__ == "__main__":
     # Parse command-line arguments
     parser = argparse.ArgumentParser(description='Screen capture with video encoding')
-    parser.add_argument('--tag', type=str, default=None, 
+    parser.add_argument('--tag', type=str, default=None,
                         help='Tag for naming output files (default: timestamp)')
-    parser.add_argument('--fps', type=int, default=10, 
-                        help='Frames per second (default: 10)')
-    parser.add_argument('--quality', type=str, default='low', 
+    parser.add_argument('--fps', type=int, default=DEFAULT_FPS,
+                        help=f'Frames per second (default: {DEFAULT_FPS})')
+    parser.add_argument('--quality', type=str, default=DEFAULT_QUALITY,
                         choices=['low', 'medium', 'high'],
-                        help='Video quality preset (default: low)')
-    parser.add_argument('--output-dir', type=str, default='__cursor_data',
-                        help='Output directory (default: __cursor_data)')
+                        help=f'Video quality preset (default: {DEFAULT_QUALITY})')
+    parser.add_argument('--output-dir', type=str, default=DEFAULT_OUTPUT_DIR,
+                        help=f'Output directory (default: {DEFAULT_OUTPUT_DIR})')
     args = parser.parse_args()
-    
-    # Generate timestamp-based tag if none provided
-    if args.tag is None:
-        args.tag = datetime.now().strftime('%Y%m%d_%H%M%S')
-    
-    # Create capture instance
-    # Quality options: 'low' (fast, larger files), 'medium' (balanced), 'high' (best compression)
-    capture = ScreenCaptureVideo(
-        capture_interval=1.0/args.fps,  # Calculate interval from FPS
-        output_dir=args.output_dir,
+
+    # Create capture instance via shared factory
+    capture = create_capture_session(
         tag=args.tag,
-        video_quality=args.quality,
-        fps=args.fps
+        fps=args.fps,
+        quality=args.quality,
+        output_dir=args.output_dir,
     )
-    
+
     # Handle clean shutdown
     def signal_handler(sig, frame):
         capture.stop()
