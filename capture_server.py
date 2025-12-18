@@ -242,13 +242,29 @@ class ScreenCapture:
     
     def _screenshot_worker(self):
         """Worker thread that processes screenshots from the queue"""
-        while self.running:
+        while True:
             try:
-                screenshot_data = self.screenshot_queue.get(timeout=1)
-                self._process_screenshot(screenshot_data)
-                self.screenshot_queue.task_done()
-            except:
-                continue
+                # Use timeout to allow checking for shutdown even if queue is empty
+                try:
+                    screenshot_data = self.screenshot_queue.get(timeout=0.5)
+                except: # queue.Empty
+                    if not self.running:
+                        break
+                    continue
+
+                if screenshot_data is None: # Poison pill
+                    self.screenshot_queue.task_done()
+                    break
+
+                try:
+                    self._process_screenshot(screenshot_data)
+                finally:
+                    # CRITICAL: Always call task_done to avoid hanging queue.join()
+                    self.screenshot_queue.task_done()
+            except Exception as e:
+                print(f"Unexpected error in screenshot worker: {e}")
+                if not self.running:
+                    break
     
     def _capture_screenshot_async(self, timestamp, cursor_x, cursor_y):
         """Capture screenshot and queue it for async processing"""
@@ -387,10 +403,21 @@ class ScreenCapture:
 
     def stop(self):
         """Stop the screen capture system"""
+        if not self.running:
+            return
+            
         self.running = False
         
+        # Send poison pill to workers
+        print("\nStopping... sending shutdown signals to workers...")
+        for _ in range(self.num_screenshot_workers):
+            try:
+                self.screenshot_queue.put(None, timeout=1)
+            except:
+                pass
+
         # Wait for screenshot queue to finish processing
-        print("\nStopping... waiting for screenshot queue to finish...")
+        print("Waiting for screenshot queue to finish...")
         try:
             self.screenshot_queue.join()
             print(f"Screenshot queue processed successfully")

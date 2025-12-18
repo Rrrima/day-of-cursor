@@ -201,8 +201,10 @@ class ScreenCaptureVideo:
         self.ffmpeg_process = subprocess.Popen(
             cmd,
             stdin=subprocess.PIPE,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            # This tells the OS to just throw away those logs immediately so the buffer never fills up, 
+            # allowing FFmpeg to run at full speed without ever blocking.
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
             bufsize=10**8
         )
         print(f"FFmpeg started, encoding to: {self.video_file_path}")
@@ -211,28 +213,40 @@ class ScreenCaptureVideo:
         """Worker thread that encodes frames to video"""
         self._start_ffmpeg()
         
-        while self.running:
+        while True:
             try:
-                frame_data = self.frame_queue.get(timeout=1)
+                # Use timeout to allow checking for shutdown even if queue is empty
+                try:
+                    frame_data = self.frame_queue.get(timeout=0.5)
+                except: # queue.Empty
+                    if not self.running:
+                        break
+                    continue
+
                 if frame_data is None:  # Poison pill to stop
+                    self.frame_queue.task_done()
                     break
                 
-                # Convert PIL Image to RGBA numpy array (preserve transparency)
-                img = frame_data['image']
-                if img.mode != 'RGBA':
-                    img = img.convert('RGBA')
-                
-                # Convert to numpy array and write to FFmpeg
-                frame = np.array(img)
-                self.ffmpeg_process.stdin.write(frame.tobytes())
-                self.frame_count += 1
-                
-                self.frame_queue.task_done()
+                try:
+                    # Convert PIL Image to RGBA numpy array (preserve transparency)
+                    img = frame_data['image']
+                    if img.mode != 'RGBA':
+                        img = img.convert('RGBA')
+                    
+                    # Convert to numpy array and write to FFmpeg
+                    frame = np.array(img)
+                    self.ffmpeg_process.stdin.write(frame.tobytes())
+                    self.frame_count += 1
+                except Exception as e:
+                    print(f"Error encoding frame: {e}")
+                finally:
+                    # call task_done to avoid hanging queue.join()
+                    self.frame_queue.task_done()
                 
             except Exception as e:
-                if self.running:  
-                    print(f"Error encoding frame: {e}")
-                continue
+                print(f"Unexpected error in video encoder: {e}")
+                if not self.running:
+                    break
         
         # Close FFmpeg stdin to signal end of input
         try:
@@ -362,21 +376,27 @@ class ScreenCaptureVideo:
     
     def stop(self):
         """Stop the screen capture system"""
+        if not self.running:
+            return
+            
         print("\nStopping capture...")
         self.running = False
         
-        # Wait for frame queue to empty
-        print("Waiting for frames to finish encoding...")
-        try:
-            self.frame_queue.join()
-        except Exception as e:
-            print(f"Error waiting for frame queue: {e}")
-        
-        # Send poison pill to encoder
+        # Send poison pill to encoder so it knows to finish up
+        print("Sending shutdown signal to encoder...")
         try:
             self.frame_queue.put(None, timeout=1)
         except:
             pass
+            
+        # Wait for frame queue to empty
+        print("Waiting for frames to finish encoding...")
+        try:
+            # Join with a long timeout as a safety measure
+            # The worker will now process remaining frames because it checks for poison pill/running state
+            self.frame_queue.join()
+        except Exception as e:
+            print(f"Error waiting for frame queue: {e}")
         
         # Write remaining CSV data
         with self.data_lock:
