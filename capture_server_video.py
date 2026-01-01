@@ -12,6 +12,11 @@ from PIL import Image, ImageDraw
 import Quartz
 import mss
 import numpy as np
+from typing import Optional
+
+DEFAULT_FPS = 10
+DEFAULT_QUALITY = "low"  # keep CLI behavior (fast, larger files)
+DEFAULT_OUTPUT_DIR = "__cursor_data"
 
 
 class ScreenCaptureVideo:
@@ -201,8 +206,10 @@ class ScreenCaptureVideo:
         self.ffmpeg_process = subprocess.Popen(
             cmd,
             stdin=subprocess.PIPE,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            # This tells the OS to just throw away those logs immediately so the buffer never fills up, 
+            # allowing FFmpeg to run at full speed without ever blocking.
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
             bufsize=10**8
         )
         print(f"FFmpeg started, encoding to: {self.video_file_path}")
@@ -211,28 +218,40 @@ class ScreenCaptureVideo:
         """Worker thread that encodes frames to video"""
         self._start_ffmpeg()
         
-        while self.running:
+        while True:
             try:
-                frame_data = self.frame_queue.get(timeout=1)
+                # Use timeout to allow checking for shutdown even if queue is empty
+                try:
+                    frame_data = self.frame_queue.get(timeout=0.5)
+                except: # queue.Empty
+                    if not self.running:
+                        break
+                    continue
+
                 if frame_data is None:  # Poison pill to stop
+                    self.frame_queue.task_done()
                     break
                 
-                # Convert PIL Image to RGBA numpy array (preserve transparency)
-                img = frame_data['image']
-                if img.mode != 'RGBA':
-                    img = img.convert('RGBA')
-                
-                # Convert to numpy array and write to FFmpeg
-                frame = np.array(img)
-                self.ffmpeg_process.stdin.write(frame.tobytes())
-                self.frame_count += 1
-                
-                self.frame_queue.task_done()
+                try:
+                    # Convert PIL Image to RGBA numpy array (preserve transparency)
+                    img = frame_data['image']
+                    if img.mode != 'RGBA':
+                        img = img.convert('RGBA')
+                    
+                    # Convert to numpy array and write to FFmpeg
+                    frame = np.array(img)
+                    self.ffmpeg_process.stdin.write(frame.tobytes())
+                    self.frame_count += 1
+                except Exception as e:
+                    print(f"Error encoding frame: {e}")
+                finally:
+                    # call task_done to avoid hanging queue.join()
+                    self.frame_queue.task_done()
                 
             except Exception as e:
-                if self.running:  
-                    print(f"Error encoding frame: {e}")
-                continue
+                print(f"Unexpected error in video encoder: {e}")
+                if not self.running:
+                    break
         
         # Close FFmpeg stdin to signal end of input
         try:
@@ -362,21 +381,27 @@ class ScreenCaptureVideo:
     
     def stop(self):
         """Stop the screen capture system"""
+        if not self.running:
+            return
+            
         print("\nStopping capture...")
         self.running = False
         
-        # Wait for frame queue to empty
-        print("Waiting for frames to finish encoding...")
-        try:
-            self.frame_queue.join()
-        except Exception as e:
-            print(f"Error waiting for frame queue: {e}")
-        
-        # Send poison pill to encoder
+        # Send poison pill to encoder so it knows to finish up
+        print("Sending shutdown signal to encoder...")
         try:
             self.frame_queue.put(None, timeout=1)
         except:
             pass
+            
+        # Wait for frame queue to empty
+        print("Waiting for frames to finish encoding...")
+        try:
+            # Join with a long timeout as a safety measure
+            # The worker will now process remaining frames because it checks for poison pill/running state
+            self.frame_queue.join()
+        except Exception as e:
+            print(f"Error waiting for frame queue: {e}")
         
         # Write remaining CSV data
         with self.data_lock:
@@ -430,34 +455,47 @@ class ScreenCaptureVideo:
         print(f"{'='*60}\n")
 
 
+def create_capture_session(
+    tag: Optional[str] = None,
+    fps: int = DEFAULT_FPS,
+    quality: str = DEFAULT_QUALITY,
+    output_dir: str = DEFAULT_OUTPUT_DIR,
+) -> ScreenCaptureVideo:
+    """Factory for ScreenCaptureVideo with shared defaults."""
+    if tag is None:
+        tag = datetime.now().strftime("%Y%m%d_%H%M%S")
+
+    return ScreenCaptureVideo(
+        capture_interval=1.0 / fps,
+        output_dir=output_dir,
+        tag=tag,
+        video_quality=quality,
+        fps=fps,
+    )
+
+
 if __name__ == "__main__":
     # Parse command-line arguments
     parser = argparse.ArgumentParser(description='Screen capture with video encoding')
-    parser.add_argument('--tag', type=str, default=None, 
+    parser.add_argument('--tag', type=str, default=None,
                         help='Tag for naming output files (default: timestamp)')
-    parser.add_argument('--fps', type=int, default=10, 
-                        help='Frames per second (default: 10)')
-    parser.add_argument('--quality', type=str, default='low', 
+    parser.add_argument('--fps', type=int, default=DEFAULT_FPS,
+                        help=f'Frames per second (default: {DEFAULT_FPS})')
+    parser.add_argument('--quality', type=str, default=DEFAULT_QUALITY,
                         choices=['low', 'medium', 'high'],
-                        help='Video quality preset (default: low)')
-    parser.add_argument('--output-dir', type=str, default='__cursor_data',
-                        help='Output directory (default: __cursor_data)')
+                        help=f'Video quality preset (default: {DEFAULT_QUALITY})')
+    parser.add_argument('--output-dir', type=str, default=DEFAULT_OUTPUT_DIR,
+                        help=f'Output directory (default: {DEFAULT_OUTPUT_DIR})')
     args = parser.parse_args()
-    
-    # Generate timestamp-based tag if none provided
-    if args.tag is None:
-        args.tag = datetime.now().strftime('%Y%m%d_%H%M%S')
-    
-    # Create capture instance
-    # Quality options: 'low' (fast, larger files), 'medium' (balanced), 'high' (best compression)
-    capture = ScreenCaptureVideo(
-        capture_interval=1.0/args.fps,  # Calculate interval from FPS
-        output_dir=args.output_dir,
+
+    # Create capture instance via shared factory
+    capture = create_capture_session(
         tag=args.tag,
-        video_quality=args.quality,
-        fps=args.fps
+        fps=args.fps,
+        quality=args.quality,
+        output_dir=args.output_dir,
     )
-    
+
     # Handle clean shutdown
     def signal_handler(sig, frame):
         capture.stop()

@@ -2,6 +2,34 @@
 
 Watch your cursor's journey through time! Record your screen and cursor movements, then replay them as a bird's-eye view or experience it from your cursor's POV 👁️
 
+## The Menu Bar App
+
+This handles both recording and the web viewer from a single interface.
+
+### Setup
+1. Create and activate a virtual environment:
+   ```bash
+   python -m venv .venv
+   source .venv/bin/activate
+   ```
+2. Install dependencies:
+   ```bash
+   pip install -r requirements.txt
+   npm install
+   ```
+
+### Running the App
+```bash
+python menubar_app.py
+```
+
+- **Start Recording**: Click the menu bar icon (plain circle) and enter a tag name. The icon turns **purple** while recording.
+- **View Sessions**: Select "View Sessions" to automatically open the browser to the timeline viewer.
+- **Stop Recording**: Select "Stop Recording" to save your session.
+- **Quit**: Quitting the menu bar app automatically cleans up the background web server and any active recordings.
+
+---
+
 ## Requirements
 
 - Python 3.7+
